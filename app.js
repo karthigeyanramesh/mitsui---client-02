@@ -8,7 +8,17 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require('mongoose');
-const md5 = require('md5');
+
+// ////HASHING USING BYCRPT- rember to check npm docs
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
+
+
+
+// hasing using MD5
+
+// const md5 = require('md5');
+
 
 // ///ENCRYPTION METHOD//////
 // var encrypt = require('mongoose-encryption');
@@ -33,7 +43,6 @@ async function main() {
     mongoose.connect('mongodb://localhost:27017/userDB',{useNewUrlParser: true});
 
 }
-console.log(md5("test"))
 // SERVER STARTING CODE ABOVE
 
 // user SCHEMA
@@ -91,24 +100,33 @@ app.get("/logout",function(req,res){
 app.post("/register",function(req,res){
     const email = req.body.username
     // md5 is wrapped around teh password here- thats all u have to do
-    const password= md5(req.body.password)
-    const newUser = new User ({
-        email:email,
-        password:password
-
-    })
-// remember to save DB
-    newUser.save(function(err){
+    const password= req.body.password
+    bcrypt.hash(password, saltRounds, function(err, hash) {
         if(!err){
-            res.render("secrets")
+            const newUser = new User ({
+                email:email,
+                password:hash
+        
+            })
+            // remember to save DB
+            newUser.save(function(err){
+                if(!err){
+                    res.render("secrets")
+                }else{console.log(err)}
+            })
+
         }else{console.log(err)}
-    })
+        
+        // Store hash in your password DB.
+    });
+    
 })
 
 app.post("/login",function(req,res){
     const email = req.body.username
-    const password= md5(req.body.password)
-    
+    const password= req.body.password
+
+
     // DATABASE CROSS CHECK
     User.findOne({ email:email},
         function(err,foundUser){
@@ -117,9 +135,22 @@ app.post("/login",function(req,res){
 
             }else{
                 if(foundUser){
-                    if(foundUser.password===password){
-                        res.render("secrets")
-                    }else{console.log("hey brother")}
+                    // /IN ORDER TO CROSS CHECK WITH CYRPT U MUST USE THE COMPARE METHOD////
+                    // IN BYCRPT.COMPARE , the first parameter is the pass user enters and th 
+                    // 2nd one is the hash in our DB
+                    
+                    bcrypt.compare(password, foundUser.password, function(err, result) {
+                        if(result=== true){
+                            res.render("secrets")
+                        }
+
+                        
+                    });
+                    
+                    // Below is for md5 and encryption
+                    // if(foundUser.password===password){
+                    //     res.render("secrets")
+                    // }else{console.log("hey brother")}
                 }
             }
         }
