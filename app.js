@@ -8,12 +8,10 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require('mongoose');
-var encrypt = require('mongoose-encryption');
+const md5 = require('md5');
 
-// const _ = require("lodash");
-
-
-
+// ///ENCRYPTION METHOD//////
+// var encrypt = require('mongoose-encryption');
 
 const app = express();
 
@@ -35,6 +33,7 @@ async function main() {
     mongoose.connect('mongodb://localhost:27017/userDB',{useNewUrlParser: true});
 
 }
+console.log(md5("test"))
 // SERVER STARTING CODE ABOVE
 
 // user SCHEMA
@@ -44,14 +43,21 @@ const userSchema= new mongoose.Schema({
 
 })
 
+
+
+// ////// HASHING /////
+
+
+
 // ENCRYPTION-easy way //////////////////////////
 
 // this all we have to do to store the users data encrypted on our DB
 // u can still access the users password by using JS CODE(req.body.password)
 
 
-// to encrpt more ones just add comma after pass and specify the one u need yo encrpt
-userSchema.plugin(encrypt, { secret: process.env.SECRET,encryptedFields: ['password'] });
+// to encrpt more ones just add comma after password and specify the one u need yo encrpt
+
+// userSchema.plugin(encrypt, { secret: process.env.SECRET,encryptedFields: ['password'] });
 
 // Encryption end ///////////////////////////////
 
@@ -84,7 +90,8 @@ app.get("/logout",function(req,res){
 
 app.post("/register",function(req,res){
     const email = req.body.username
-    const password= req.body.password
+    // md5 is wrapped around teh password here- thats all u have to do
+    const password= md5(req.body.password)
     const newUser = new User ({
         email:email,
         password:password
@@ -100,7 +107,9 @@ app.post("/register",function(req,res){
 
 app.post("/login",function(req,res){
     const email = req.body.username
-    const password= req.body.password
+    const password= md5(req.body.password)
+    
+    // DATABASE CROSS CHECK
     User.findOne({ email:email},
         function(err,foundUser){
             console.log(foundUser)
